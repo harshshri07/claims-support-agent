@@ -22,10 +22,10 @@ const STARTERS = [
   ["Calling for a parent", "Hi, I'm David Chen, calling for my mom Margaret Chen. Her date of birth is March 15, 1985 and her SSN ends in 4472."],
 ];
 const SCENARIOS = [
-  { title: "Demo case", start: true, desc: "Margaret gives her details and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
-  { title: "Frustrated caller", desc: "“I already told you who I am. This is ridiculous. Just tell me why my claim was denied.”", text: STARTERS[1][1] },
-  { title: "Off-topic question", desc: "“What is RL?” Checks that it politely declines unrelated questions.", text: STARTERS[2][1] },
-  { title: "Calling for a parent", desc: "A son calls about his mother's claim. Her approval is needed before anything is shared.", text: STARTERS[3][1] },
+  { title: "Demo case", desc: "Margaret gives her details and asks about her denied claim.", text: STARTERS[0][1] },
+  { title: "Frustrated caller", desc: "“I already told you who I am. This is ridiculous…”", text: STARTERS[1][1] },
+  { title: "Off-topic question", desc: "“What is RL?” It should politely decline.", text: STARTERS[2][1] },
+  { title: "Calling for a parent", desc: "A son calls about his mother's claim. Her approval is needed.", text: STARTERS[3][1] },
 ];
 
 let sid = null, state = null, traces = [], busy = false, userTurns = 0, consent = "default";
@@ -148,8 +148,16 @@ async function send(text) {
 async function newChat() {
   $("#messages").innerHTML = `<div class="thread" id="thread"></div>`;
   traces = []; userTurns = 0;
-  document.body.classList.add("landing");
-  const r = await api("/api/session", { consent_scenario: consent });
+  document.body.classList.add("landing"); document.body.classList.remove("rail-open");
+  let r;
+  try {
+    r = await api("/api/session", { consent_scenario: consent });
+  } catch (e) {   // never leave a blank page: say what happened and offer a retry
+    $("#thread").innerHTML = `<div class="hero"><h1>Claims support</h1><p class="sub">${esc(e.message === "Failed to fetch" ? "Can't reach the server. Check your connection and try again." : e.message)}</p>
+      <div class="try"><button class="btn" id="retryBtn">Try again</button></div></div>`;
+    $("#retryBtn").onclick = newChat;
+    return;
+  }
   sid = r.session_id; state = r.state;
   addMsg("agent", r.reply);
   showHero(); showScenarios();
@@ -171,8 +179,8 @@ function showScenarios() {
   const el = document.createElement("div");
   el.className = "scenarios"; el.id = "scenarios";
   el.innerHTML = `<span class="label">Test scenarios · click one to send it</span>
-    <div class="cards">${SCENARIOS.map((c, i) => `<button class="scn${c.start ? " start" : ""}" data-i="${i}" title="${esc(c.text)}">
-      <b>${esc(c.title)}${c.start ? '<span class="tag">Start here</span>' : ""}</b><span>${esc(c.desc)}</span></button>`).join("")}</div>`;
+    <div class="cards">${SCENARIOS.map((c, i) => `<button class="scn" data-i="${i}" title="${esc(c.text)}">
+      <b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></button>`).join("")}</div>`;
   el.querySelectorAll(".scn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
   thread().appendChild(el);
 }
@@ -223,10 +231,10 @@ function renderStrip() {
   const order = STEPS.map((s) => s[0]), i = order.indexOf(state.phase);
   const bars = STEPS.map((_, k) => `<span class="${i === -1 || k < i ? "done" : k === i ? "now" : ""}"></span>`).join("");
   const label = state.phase === "HANDOFF" ? "<b>With a person</b>" : state.phase === "CLOSED" ? "<b>Conversation ended</b>"
-    : `Step ${i + 1} of 4 · <b>${STEPS[i][1]}</b>`;
+    : `${i + 1}/4 · <b>${STEPS[i][1]}</b>`;
   const v = state.verification;
-  const id = v.verified ? "Identity verified" : `Identity: ${v.collected.length}/3 details`;
-  $("#strip").innerHTML = `<div class="bars">${bars}</div><span>${label}</span><span class="idc">${id}</span>`;
+  const id = v.verified ? "Verified" : `ID ${Math.min(v.collected.length, 3)}/3`;
+  $("#strip").innerHTML = `<div class="bars">${bars}</div><span>${label}</span><span class="idc">${id}</span><span class="chev" aria-hidden="true">▾</span>`;
 }
 
 function renderIds() {
@@ -312,18 +320,23 @@ async function showMail() {
 
 async function showData() {
   const d = await api("/api/test-data");
+  const fmtPhone = (n) => n.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3");
+  const idLabel = () => "SSN / ID, last 4";
+  const fact = (k, v) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`;
   const people = d.policyholders.map((p) => {
     const sample = `Hi, my name is ${p.name}. My date of birth is ${p.dob} and the last four of my ${p.id_type === "ssn_last4" ? "SSN" : "national ID"} are ${p.id_last4}.`;
-    return `<div class="person"><div class="n">${esc(p.name)}<button class="use" data-say="${esc(sample)}">Use</button></div>
-      <div class="f">DOB ${esc(p.dob)} · ${p.id_type === "ssn_last4" ? "SSN" : "National ID"} ${esc(p.id_last4)} · ${esc(p.phone)} · ${esc(p.email)}</div>
-      ${p.name_aliases ? `<div class="f">Also accepts: ${esc(p.name_aliases.join(", "))}</div>` : ""}</div>`;
+    return `<div class="person"><div class="n"><span>${esc(p.name)}</span><button class="use" data-say="${esc(sample)}">Use in chat</button></div>
+      <dl class="facts">${fact("Date of birth", p.dob)}${fact(idLabel(p), p.id_last4)}${fact("Phone", fmtPhone(p.phone))}${fact("Email", p.email)}</dl>
+      ${p.name_aliases ? `<p class="note-line">Also answers to “${esc(p.name_aliases.join(", "))}”.</p>` : ""}</div>`;
   }).join("");
-  const reps = d.representatives.map((r) => `<div class="person"><div class="n"><span>${esc(r.rep_name)} <span class="muted small" style="font-weight:400">· ${esc(r.relationship)} of ${esc(r.buyer_name)}</span></span>
-      <button class="use" data-say="${esc(STARTERS[3][1])}">Use</button></div><div class="f">Authorized representative. Needs the policyholder's approval.</div></div>`).join("");
-  $("#dataBody").innerHTML = `<p class="muted small" style="margin:0">You're playing the caller. Pick a fictional customer below, then give the agent any three of their details (name, date of birth, phone, email, or SSN/ID last 4) to get verified. <b>Use</b> puts a ready-made message in the box.</p>
-    ${people}${reps}
-    <div class="setting"><span>When a representative calls, the policyholder…</span>
-      <select id="consentSel"><option value="default">approves</option><option value="timeout">doesn't respond</option></select></div>`;
+  const reps = d.representatives.map((r) => `<div class="person"><div class="n"><span>${esc(r.rep_name)}</span>
+      <button class="use" data-say="${esc(STARTERS[3][1])}">Use in chat</button></div>
+      <p class="note-line">${esc(r.buyer_name)}'s ${esc(r.relationship)}, listed as an authorized representative. ${esc(r.buyer_name)} has to approve before anything is shared.</p></div>`).join("");
+  $("#dataBody").innerHTML = `<p class="muted small" style="margin:0">You're playing the caller. Pick a fictional customer and give the agent any three of their details to get verified. <b>Use in chat</b> puts a ready-made message in the box.</p>
+    <h4 class="label sec">Policyholders</h4>${people}
+    <h4 class="label sec">Authorized representative</h4>${reps}
+    <label class="field"><span>When a representative calls</span>
+      <select id="consentSel"><option value="default">The policyholder approves the request</option><option value="timeout">The policyholder doesn't respond</option></select></label>`;
   $("#consentSel").value = consent;
   $("#consentSel").onchange = (e) => { consent = e.target.value; $("#dataDlg").close(); newChat(); };
   $("#dataBody").querySelectorAll(".use").forEach((b) => b.onclick = () => {
@@ -351,11 +364,13 @@ async function refreshModel() {
 }
 
 const OTHER = "__other";
+// readable model name: drop the region prefix, vendor and date/version suffix (the full id stays the option's value)
+const shortModel = (m) => (m || "").replace(/^(us|eu|apac|global)\.[a-z0-9]+\./, "").replace(/-\d{8}(-v\d+:\d+)?$/, "");
 
 function modelOptions(list, selected) {
   const opts = [...new Set(list.filter(Boolean))];
   if (selected && selected !== OTHER && !opts.includes(selected)) opts.unshift(selected);
-  return opts.map((m) => `<option value="${esc(m)}" ${m === selected ? "selected" : ""}>${esc(m)}</option>`).join("")
+  return opts.map((m) => `<option value="${esc(m)}" title="${esc(m)}" ${m === selected ? "selected" : ""}>${esc(shortModel(m))}</option>`).join("")
     + `<option value="${OTHER}" ${selected === OTHER ? "selected" : ""}>Other (type a name)…</option>`;
 }
 
@@ -431,11 +446,12 @@ async function openModel(intro) {
   sel.value = models.provider || "openai";
   renderProviderFields();
   const allowed = models.ui_config_allowed;
+  const shared = (models.server_key_models || []).map(shortModel).join(" and ");
   $("#modelIntro").textContent = !allowed ? "This server's model is set by its administrator." :
-    intro || ((models.configured ? `Currently using ${models.provider_label}${models.model ? " · " + models.model : ""}. ` : "")
-      + "To test with your own model, pick a provider, paste your API key, then Test connection and Connect. "
-      + "Your key is used only for your own chat in this browser tab. It stays in server memory, is never saved, and is never shown again."
-      + (models.server_key_models?.length ? ` The shared demo key works with ${models.server_key_models.map((m) => m.replace(/^us\.anthropic\./, "")).join(" and ")}.` : ""));
+    intro || ((models.configured ? `Using ${models.provider_label}${models.model ? " · " + shortModel(models.model) : ""}. ` : "")
+      + "To use your own model, choose a provider, paste your API key and press Connect. "
+      + "Your key is used only for your own chat in this browser tab and is never saved."
+      + (shared ? ` The shared demo key works with ${shared}.` : ""));
   $("#modelForm").querySelectorAll("select, input, .dlg-actions button").forEach((x) => { x.disabled = !allowed; });
   $("#modelDlg").showModal();
 }
@@ -487,6 +503,7 @@ $("#form").onsubmit = (e) => { e.preventDefault(); send($("#input").value); };
 $("#input").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send($("#input").value); } });
 $("#input").addEventListener("input", autosize);
 $("#newBtn").onclick = newChat;
+$("#strip").onclick = () => document.body.classList.toggle("rail-open");   // phones: show/hide progress, identity, memory
 $("#dataBtn").onclick = showData;
 $("#dataBtn2").onclick = showData;
 document.querySelectorAll("[data-close]").forEach((b) => b.onclick = () => b.closest("dialog").close());
@@ -498,4 +515,7 @@ refreshModel().then((m) => {
   if (!m.configured || m.error || new URLSearchParams(location.search).has("model")) openModel(m.error ? `The server's model setup failed: ${m.error}` : undefined);
 }).catch(() => {});
 if (new URLSearchParams(location.search).has("identities")) setTimeout(showData, 300);   // direct link to the test identities
-newChat().then(async () => { for (const q of new URLSearchParams(location.search).getAll("say")) await send(q); });
+newChat().then(async () => {
+  for (const q of new URLSearchParams(location.search).getAll("say")) await send(q);
+  if (new URLSearchParams(location.search).has("details")) document.body.classList.add("rail-open");   // for screenshots
+});

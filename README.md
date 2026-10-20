@@ -150,7 +150,8 @@ API: `POST /api/session`, `POST /api/chat` (`{reply, explain, trace, state}`), `
 
 Deploying (Render, the Docker image, a Bedrock-only IAM policy): [docs/DEPLOY.md](docs/DEPLOY.md).
 Hosting safety: a visitor's key/model applies only to their own browser tab; the shared key is limited to
-`SERVER_KEY_MODELS`; each visitor is rate-limited (`RATE_LIMITS`).
+`SERVER_KEY_MODELS`; and visitors can be rate-limited with `RATE_LIMITS` (off by default for local use, set in
+`render.yaml` for the hosted demo).
 
 Design notes and trade-offs: [docs/DESIGN.md](docs/DESIGN.md). Settings: see `.env.example` (`DEMO_TODAY` defaults
 to `2026-03-05` so the fixture appeal deadlines are still open).

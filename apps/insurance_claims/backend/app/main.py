@@ -59,7 +59,7 @@ class ModelIn(BaseModel):
 def _limits() -> dict[str, tuple[int, int]]:
     """RATE_LIMITS="chat=40/600,session=20/600,model=20/600" -> {bucket: (max requests, window seconds)}"""
     out = {}
-    for part in os.getenv("RATE_LIMITS", "chat=40/600,session=20/600,model=20/600").split(","):
+    for part in os.getenv("RATE_LIMITS", "").split(","):   # unset = no limits (local / Docker); set it for a public demo
         if "=" in part and "/" in part:
             name, spec = part.split("=", 1)
             n, w = spec.split("/", 1)
