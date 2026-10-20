@@ -3,6 +3,8 @@
 An SOP harness for an insurance claims support agent. It follows the fixed workflow
 **VERIFY_ID → RESOLVE_INTENT → PROCESS_CASE → POST_PROCESS** and still converses naturally.
 
+**Repo:** https://github.com/harshshri07/insurance-claims-sop-agent
+
 Built directly on the provided starter: the fixtures in `apps/insurance_claims/fixtures/` are used **in place and
 unmodified**, and the solution sits next to them.
 
@@ -31,7 +33,7 @@ Your key applies only to your own browser tab.
 **Prebuilt Docker image** (published by GitHub Actions on every push)
 
 ```bash
-docker run -p 8000:8000 ghcr.io/GITHUB-OWNER/REPO-NAME:latest
+docker run -p 8000:8000 ghcr.io/harshshri07/insurance-claims-sop-agent:latest
 # then open http://localhost:8000 and add your API key, or pass one: -e OPENAI_API_KEY=sk-...
 ```
 
