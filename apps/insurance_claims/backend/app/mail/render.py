@@ -8,7 +8,7 @@ from typing import Any
 def render_email(*, to_name: str, cases: list[dict[str, Any]], discussed: list[str], next_steps: list[str],
                  handoff: dict[str, Any] | None, call_date: str) -> tuple[str, str]:
     first = to_name.split()[0]
-    text = [f"Hi {first},", "", f"Here's a summary of your call with Harborview Mutual claims support on {call_date}.", ""]
+    text = [f"Hi {first},", "", f"Here's a summary of your call with claims support on {call_date}.", ""]
     if discussed:
         text += ["WHAT WE DISCUSSED"] + [f"- {d}" for d in discussed] + [""]
     if cases:
@@ -27,7 +27,7 @@ def render_email(*, to_name: str, cases: list[dict[str, Any]], discussed: list[s
     if handoff:
         text += [f"A claims representative is following up (reference {handoff['ticket_id']}).", ""]
     text += ["If anything here looks wrong, reply to this email or call us and mention your claim number.",
-             "", "— Alex, Harborview Mutual Claims Support"]
+             "", "— Alex, Claims Support"]
 
     def li(items):
         return "".join(f"<li>{escape(i)}</li>" for i in items)
@@ -47,7 +47,7 @@ def render_email(*, to_name: str, cases: list[dict[str, Any]], discussed: list[s
                       f"<span style='color:{color};font-weight:600;text-transform:uppercase;margin-left:6px'>{escape(c['status'])}</span></div>"
                       f"<div style='margin-top:6px;font-size:14px;color:#475467'>{extra}</div></div>")
     html = f"""<div style="font-family:Segoe UI,Arial,sans-serif;max-width:600px;color:#101828;line-height:1.5">
-<div style="background:#0b3b5c;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0"><b>Harborview Mutual</b> · Call summary</div>
+<div style="background:#1e2226;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0"><b>Claims Support</b> · Call summary</div>
 <div style="border:1px solid #e4e7ec;border-top:0;padding:20px;border-radius:0 0 8px 8px">
 <p>Hi {escape(first)},</p><p>Here's a summary of your call with claims support on {escape(call_date)}.</p>
 {"<h3 style='font-size:15px'>What we discussed</h3><ul>" + li(discussed) + "</ul>" if discussed else ""}
@@ -55,5 +55,5 @@ def render_email(*, to_name: str, cases: list[dict[str, Any]], discussed: list[s
 {"<h3 style='font-size:15px'>Next steps</h3><ol>" + li(next_steps) + "</ol>" if next_steps else ""}
 {f"<p>A claims representative is following up (reference <b>{escape(handoff['ticket_id'])}</b>).</p>" if handoff else ""}
 <p style="font-size:13px;color:#667085">If anything here looks wrong, reply to this email or call us and mention your claim number.</p>
-<p>— Alex, Harborview Mutual Claims Support</p></div></div>"""
+<p>— Alex, Claims Support</p></div></div>"""
     return html, "\n".join(text)

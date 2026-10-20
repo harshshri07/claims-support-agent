@@ -84,6 +84,30 @@ def _rate_limit(request: Request, bucket: str) -> None:
 
 
 # ---------------------------------------------------------------- helpers
+def _snapshot(s: SessionState) -> dict:
+    """Session state for the UI, plus a claim summary built from the claims system (never from the model).
+    The summary only exists once the caller is cleared (verified, and approved if a representative)."""
+    snap = s.public()
+    v = s.verification
+    snap["claim"] = None
+    if v.verified and v.consent_status in ("not_required", "approved") and s.active_case_id:
+        repo = get_repo()
+        case = repo.case(v.party_id, s.active_case_id)
+        if case:
+            f = repo.fact_sheet(case, settings.demo_today)
+            amounts = {k: f["amounts"][k]["value"] for k in ("expected_reimbursement_amount", "net_pay") if k in f["amounts"]}
+            snap["claim"] = {
+                "case_id": f["case_id"], "claim_type": f["claim_type"], "status": f["status"],
+                "filed_on": f["filed_on_pretty"], "reason": f.get("denial_reason"),
+                "documents_needed": f.get("documents_needed", []),
+                "appeal_deadline": f.get("appeal_deadline_pretty"), "days_left": f.get("days_until_appeal_deadline"),
+                "deadline_passed": f.get("appeal_deadline_passed"),
+                "expected_payment": amounts.get("expected_reimbursement_amount") if f["status"] != "denied" else None,
+                "paid_so_far": amounts.get("net_pay") if f["status"] != "denied" else None,
+            }
+    return snap
+
+
 def _gc() -> None:
     now = time.time()
     for sid in [sid for sid, s in SESSIONS.items() if now - s.created > SESSION_TTL]:
@@ -210,7 +234,7 @@ def new_session(request: Request, body: NewSession | None = None):
     s = SessionState(consent_scenario=scenario)
     SESSIONS[s.session_id] = s
     greeting = controller.start(s)
-    return {"session_id": s.session_id, "reply": greeting, "state": s.public()}
+    return {"session_id": s.session_id, "reply": greeting, "state": _snapshot(s)}
 
 
 @app.post("/api/chat")
@@ -226,13 +250,13 @@ def chat(body: ChatIn, request: Request, x_client_id: str | None = Header(defaul
             out = controller.handle(s, body.message.strip())
     finally:
         llm_registry.reset_client_model(token)
-    return {"reply": out["reply"], "explain": out["trace"]["explain"], "trace": out["trace"], "state": s.public()}
+    return {"reply": out["reply"], "explain": out["trace"]["explain"], "trace": out["trace"], "state": _snapshot(s)}
 
 
 @app.get("/api/session/{sid}")
 def get_session(sid: str):
     s = _get(sid)
-    return {"state": s.public(), "transcript": s.transcript, "traces": s.traces}
+    return {"state": _snapshot(s), "transcript": s.transcript, "traces": s.traces}
 
 
 @app.get("/api/session/{sid}/outbox")

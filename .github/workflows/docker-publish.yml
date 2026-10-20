@@ -1,5 +1,6 @@
-# On every push to main: run the deterministic tests, then build the Docker image and publish it to
-# GitHub Container Registry as ghcr.io/<owner>/<repo>:latest (and :<commit sha>).
+# On every push to main: run the deterministic tests.
+# Publishing the Docker image to GitHub Container Registry only happens when someone starts this workflow
+# by hand (Actions tab -> Run workflow), never automatically.
 name: test-build-publish
 
 on:
@@ -26,6 +27,7 @@ jobs:
 
   image:
     needs: test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

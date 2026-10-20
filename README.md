@@ -3,8 +3,6 @@
 An SOP harness for an insurance claims support agent. It follows the fixed workflow
 **VERIFY_ID → RESOLVE_INTENT → PROCESS_CASE → POST_PROCESS** and still converses naturally.
 
-**Repo:** https://github.com/harshshri07/insurance-claims-sop-agent
-
 Built directly on the provided starter: the fixtures in `apps/insurance_claims/fixtures/` are used **in place and
 unmodified**, and the solution sits next to them.
 
@@ -29,13 +27,6 @@ It's ready to use with a shared demo key. To test with your own model, click **U
 Your key applies only to your own browser tab.
 
 ## Setup
-
-**Prebuilt Docker image** (published by GitHub Actions on every push)
-
-```bash
-docker run -p 8000:8000 ghcr.io/harshshri07/insurance-claims-sop-agent:latest
-# then open http://localhost:8000 and add your API key, or pass one: -e OPENAI_API_KEY=sk-...
-```
 
 **Build it yourself with Docker**
 
@@ -113,7 +104,7 @@ the input change with each step.
 
 ```bash
 cd apps/insurance_claims/backend
-python -m pytest tests/unit -q        # 34 deterministic tests, no model needed
+python -m pytest tests/unit -q        # 37 deterministic tests, no model needed
 python tests/run_scenarios.py         # 36 live conversations against the configured model
 python tests/run_scenarios.py rt_     # only the 16 adversarial ones
 ```

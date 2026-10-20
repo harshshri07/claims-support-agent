@@ -138,7 +138,26 @@ The live suite (20 functional + 16 adversarial conversations) passes 36/36 on Cl
 The functional part also passed through the OpenAI-compatible adapter. The
 Anthropic adapter was also exercised end to end.
 
-## 9. Verifiability
+## 9. Reply layout and the UI
+
+Replies have to be easy to read, whichever model writes them, so layout is enforced in code
+(`app/sop/formatting.py`) and not left to the prompt alone:
+- a long single paragraph is split into short paragraphs of at most two sentences
+- a closing question goes on its own line
+- claim numbers, dates and amounts are bold
+- text the author already structured (blank lines, bullet lists) keeps its layout
+
+Lists of options (identity details, the caller's claims) are real bullet lists. The opening message is structured
+the same way. The UI also shows a **claim card** (status, reason, documents, deadline) built by the backend from
+the claims system and not from the model's words, so the facts at a glance can't drift from the record, and the
+agent's text can stay short.
+
+The interface follows goaly.ai's visual language: warm off-white, ink with tinted greys, a single copper accent,
+hairlines, pill buttons, Instrument Sans for the interface, DM Serif Display italic for emphasis and Geist Mono for
+small uppercase labels. The product name is deliberately generic ("Claims Support Agent"); the starter data names no
+insurer, so none is invented.
+
+## 10. Verifiability
 
 `explain.py` turns each turn's trace into a short, deterministic explanation. It's shown in the side panel's
 collapsed *How each reply was handled* section, not in the chat, so the conversation stays clean. It covers:
@@ -153,7 +172,7 @@ collapsed *How each reply was handled* section, not in the chat, so the conversa
 No model writes it, so it's an honest record rather than a self-report. The raw trace is available in the API
 (`trace` in each `/api/chat` response).
 
-## 10. Trade-offs and what I'd do next
+## 11. Trade-offs and what I'd do next
 
 - **Latency.** Two model calls per turn (extract + respond), about 2–5 s on Haiku 4.5. The extractor and responder
   could be fused for STRICT turns, or the extractor run on a smaller model; the split was kept because it makes

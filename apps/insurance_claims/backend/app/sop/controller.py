@@ -20,6 +20,7 @@ from app.nlu.normalize import mask_email, mask_phone, norm_date, norm_email, nor
 
 from . import emotion, responder
 from .explain import explain
+from .formatting import tidy
 from .directive import Directive
 from .guards import check_reply, unauthorized_commitments
 from .handoff import create_ticket
@@ -32,10 +33,10 @@ from .verification import REQUIRED_FACTORS, evaluate, poll_consent, rep_on_file
 
 log = logging.getLogger(__name__)
 
-GREETING = ("Hi, thanks for contacting Harborview Mutual claims support. This is Alex. "
-            "Before I can open any claim details I'll need to verify your identity with any three of these: full name, "
-            "date of birth, phone number, email, or the last four digits of your SSN. "
-            "And feel free to tell me what you're calling about.")
+GREETING = ("Hi, I'm Alex from claims support.\n\n"
+            "Before I can open a claim, I need to verify who I'm speaking with. Please share any three of these:\n\n"
+            "- Full name\n- Date of birth\n- Phone number on file\n- Email address on file\n- Last four digits of your SSN\n\n"
+            "You can also tell me what you're calling about, and I'll pick it up as soon as you're verified.")
 
 # What the agent may say about verification itself (never anything about the account or claims).
 VERIFICATION_FAQ = {
@@ -54,6 +55,10 @@ CAPABILITIES = ["checking a claim's status", "explaining a denial", "what docume
 
 
 SELF_INTRO = re.compile(r"(?i:\bmy name is|\bthis is|\bi'm|\bi am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)")
+
+
+def _bullets(briefs: list[dict[str, str]]) -> str:
+    return "\n".join(f"- {b['case_id']} · {b['type']} · filed {b['filed']} · {b['status']}" for b in briefs)
 
 
 TRANSFER_WORDS = re.compile(r"\b(representative|transfer|connect you|a person|human|specialist|someone from our)\b", re.I)
@@ -333,10 +338,11 @@ class Controller:
             d.add("respect_refusal", "Accept their choice not to share that detail without pressure; there are "
                                      "other options.", "That's completely fine, we can use something else.")
         d.add("ask_identity",
-              f"Ask for {need} more identity detail{'s' if need > 1 else ''}, offering the remaining options. "
+              f"Say in one short sentence that you need {need} {'more ' if have else ''}identity detail{'s' if need > 1 else ''}, "
+              "then list the remaining options as a '- ' bullet list, one per line. Nothing after the list. "
               "Don't repeat back values they gave, and don't say anything is 'on file' or matched.",
-              f"To verify you, I need {need} {'more ' if have else ''}detail{'s' if need > 1 else ''} from this list: "
-              + ", ".join(self._alternatives(state, ext)) + ".",
+              f"To verify you, I still need {need} {'more ' if have else ''}detail{'s' if need > 1 else ''}. Any of these work:\n"
+              + "\n".join(f"- {o[:1].upper()}{o[1:]}" for o in self._alternatives(state, ext)),
               details_needed=need, options=self._alternatives(state, ext))
 
     def _alternatives(self, state: SessionState, ext: dict[str, Any]) -> list[str]:
@@ -478,21 +484,20 @@ class Controller:
         if res.kind == "ambiguous":
             state.last_candidates = [c["case_id"] for c in res.candidates]
             state.offer("case_choice")
-            d.add("disambiguate", "More than one claim fits what they described. Briefly list the candidates by "
-                                  "their distinguishing details (filed month/year and status) and ask which one.",
-                  "I see a few claims that could match: " + "; ".join(
-                      f"{b['case_id']} ({b['type']}, filed {b['filed']}, {b['status']})" for b in briefs)
-                  + ". Which one are you calling about?", candidates=briefs, they_described=res.used_hints)
+            d.add("disambiguate", "More than one claim fits what they described. One short sentence saying so, then a "
+                                  "'- ' bullet list with one candidate per line (claim number, type, filed month/year, "
+                                  "status), then a short question asking which one.",
+                  "A few claims could match what you described:\n" + _bullets(briefs)
+                  + "\n\nWhich one are you calling about?", candidates=briefs, they_described=res.used_hints)
             return
         if res.kind == "none":
             state.last_candidates = [c["case_id"] for c in res.candidates]
             state.offer("case_choice")
             mem.consume("case", state.turn)
-            d.add("no_exact_match", "Say you don't see a claim matching exactly what they described, list the "
-                                    "closest claims on their account, and ask which one they mean.",
-                  "I don't see a claim that matches exactly, but here's what's on your account: " + "; ".join(
-                      f"{b['case_id']} ({b['type']}, filed {b['filed']}, {b['status']})" for b in briefs)
-                  + ". Which one is it?", they_described=res.used_hints, candidates=briefs)
+            d.add("no_exact_match", "One short sentence: no claim matches exactly what they described. Then a '- ' bullet "
+                                    "list of the closest claims (one per line), then a short question asking which one.",
+                  "I don't see an exact match, but these are on your account:\n" + _bullets(briefs)
+                  + "\n\nWhich one do you mean?", they_described=res.used_hints, candidates=briefs)
             return
         if res.kind == "no_cases":
             state.handoff_reason = "caller has no claims on file"
@@ -503,11 +508,11 @@ class Controller:
             return
         state.last_candidates = [c["case_id"] for c in res.candidates]
         state.offer("case_choice")
-        d.add("ask_which_claim", "Ask what they'd like help with today; mention briefly the claims on file so they "
-                                 "can pick one.",
-              "What can I help you with today? I see these claims on your account: " + "; ".join(
-                  f"{b['case_id']} ({b['type']}, filed {b['filed']}, {b['status']})" for b in briefs) + ".",
-              claims_on_file=briefs)
+        d.add("ask_which_claim", "One short sentence welcoming them, then a '- ' bullet list of the claims on file "
+                                 "(one per line: claim number, type, filed month/year, status), then a short question: "
+                                 "which one would they like help with?",
+              "Here are the claims on your account:\n" + _bullets(briefs)
+              + "\n\nWhich one would you like help with?", claims_on_file=briefs)
 
     # ------------------------------------------------------------------ PROCESS_CASE (GROUNDED-FREE)
     def _process(self, state, ext, text, d: Directive, trace, entered):
@@ -760,7 +765,7 @@ class Controller:
     def _finish(self, state, reply: str, trace, t0: float, d: Directive) -> dict[str, Any]:
         reply = re.sub("\\s*[\u2014\u2013]\\s*", ", ", reply).replace(",,", ",")  # no em/en dashes
         reply = FILLER.sub("", reply, count=1)
-        reply = reply[:1].upper() + reply[1:]
+        reply = tidy(reply[:1].upper() + reply[1:])
         state.transcript.append({"role": "assistant", "content": reply, "turn": state.turn})
         trace["phase_after"] = state.phase.value
         trace["latency_ms"] = int((time.time() - t0) * 1000)

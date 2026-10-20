@@ -28,10 +28,10 @@ const ICONS = {
   people: '<circle cx="9" cy="8.2" r="3.1"/><path d="M3.6 19c.4-3 2.5-4.7 5.4-4.7s5 1.7 5.4 4.7"/><circle cx="17.2" cy="9.6" r="2.3"/><path d="M16.3 14.4c2.3-.2 3.9 1.1 4.4 3.5"/>',
 };
 const SCENARIOS = [
-  { icon: "play", title: "Run the demo case", desc: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
-  { icon: "chat", title: "Frustrated caller", desc: "Pushes to skip verification. Tests empathy and the security gates.", text: STARTERS[1][1] },
-  { icon: "help", title: "Off-topic question", desc: "Asks “What is RL?”. Tests scope limits and the human handoff.", text: STARTERS[2][1] },
-  { icon: "people", title: "Calling for a parent", desc: "A son calls for his mother. Needs her approval before anything is shared.", text: STARTERS[3][1] },
+  { icon: "play", title: "Demo case", desc: "Verify, find the claim and get answers in one message.", text: STARTERS[0][1] },
+  { icon: "chat", title: "Frustrated caller", desc: "Pushes to skip verification.", text: STARTERS[1][1] },
+  { icon: "help", title: "Off-topic question", desc: "Asks “What is RL?”.", text: STARTERS[2][1] },
+  { icon: "people", title: "Calling for a parent", desc: "Needs the policyholder's approval.", text: STARTERS[3][1] },
 ];
 const CHIPS = {
   RESOLVE_INTENT: [["The denied one", "The one that was denied."], ["My auto claim", "What's the status of my auto claim?"]],
@@ -80,14 +80,20 @@ function scroll() { $("#messages").scrollTop = 1e9; }
 function format(text) {
   const out = [];
   let list = null;
+  const flush = () => {
+    if (!list) return;
+    const compact = list.length >= 4 && list.every((i) => i.plain.length <= 34);   // short options flow into two columns
+    out.push(`<ul${compact ? ` class="cols" style="--rows:${Math.ceil(list.length / 2)}"` : ""}>${list.map((i) => `<li>${i.html}</li>`).join("")}</ul>`);
+    list = null;
+  };
   for (const raw of esc(text).split("\n")) {
     const line = raw.trim().replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     const item = line.match(/^[-•*]\s+(.*)/);
-    if (item) { (list ||= []).push(`<li>${item[1]}</li>`); continue; }
-    if (list) { out.push(`<ul>${list.join("")}</ul>`); list = null; }
+    if (item) { (list ||= []).push({ html: item[1], plain: item[1].replace(/<[^>]+>/g, "") }); continue; }
+    flush();
     if (line) out.push(`<p>${line}</p>`);
   }
-  if (list) out.push(`<ul>${list.join("")}</ul>`);
+  flush();
   return out.join("");
 }
 
@@ -98,7 +104,7 @@ function addMsg(role, text) {
   el.innerHTML = format(text);
   thread().appendChild(agentRow(el)); scroll();
 }
-const AVATAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="3" height="14" rx="1.5"/><rect x="15" y="5" width="3" height="14" rx="1.5"/><path d="M9 12.6c1-1.6 2-1.6 3 0s2 1.6 3 0"/></svg>`;
+const AVATAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.2 5.8 6.6v4.8c0 3.7 2.5 6.6 6.2 8 3.7-1.4 6.2-4.3 6.2-8V6.6L12 4.2Z"/><circle cx="12" cy="11.6" r="2.1"/></svg>`;
 function agentRow(el) {
   const row = document.createElement("div");
   row.className = "agent-row";
@@ -125,6 +131,7 @@ function typing(on) {
 
 // milestones shown inline, in plain words
 function milestones(prev, next) {
+  if (next.claim && next.claim.case_id !== prev.claim?.case_id) addClaimCard(next.claim);
   if (next.outbox_count > prev.outbox_count) {
     const n = addNote(`Email summary sent · <button>View</button>`, "ok");
     n.querySelector("button").onclick = showMail;
@@ -137,7 +144,7 @@ async function send(text) {
   if (!text || busy || !sid) return;
   busy = true; lockInput();
   $("#input").value = ""; autosize();
-  $("#scenarios")?.remove();
+  $("#scenarios")?.remove(); $("#hero")?.remove();
   addMsg("user", text); userTurns++; renderChips(true);
   typing(true);
   try {
@@ -152,7 +159,7 @@ async function send(text) {
   } catch (e) {
     typing(false);
     if (e.status === 409) {
-      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) showScenarios(); renderChips();
+      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) { showHero(); showScenarios(); } renderChips();
       $("#input").value = text; openModel("Connect a model first, or choose “No model (rules-only check)”.");
     } else addNote(`Something went wrong: ${esc(e.message)}`, "warn");
   } finally {
@@ -167,8 +174,18 @@ async function newChat() {
   const r = await api("/api/session", { consent_scenario: consent });
   sid = r.session_id; state = r.state;
   addMsg("agent", r.reply);
-  showScenarios();
-  render(); lockInput(); $("#input").focus();
+  showHero(); showScenarios();
+  $("#messages").scrollTop = 0;
+  render(); lockInput(); $("#input").focus({ preventScroll: true });
+}
+
+function showHero() {
+  const el = document.createElement("div");
+  el.className = "hero"; el.id = "hero";
+  el.innerHTML = `<div class="status"><span class="sdot"></span><span class="label">SOP-guided agent · live demo</span></div>
+    <h1>Claims support that <em>follows the rules.</em></h1>
+    <p>It verifies who you are, remembers what you say, and only answers from the claim file. Pick a scenario below, or reply as the caller.</p>`;
+  thread().prepend(el);
 }
 
 function showScenarios() {
@@ -176,9 +193,29 @@ function showScenarios() {
   box.className = "scenarios"; box.id = "scenarios";
   box.innerHTML = `<h3>Try a scenario</h3><div class="cards">${SCENARIOS.map((c, i) => `
     <button class="card-btn" data-i="${i}"><span class="ic"><svg viewBox="0 0 24 24">${ICONS[c.icon]}</svg></span>
-    <span><b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></span></button>`).join("")}</div>`;
+    <span><b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></span><span class="go" aria-hidden="true">↗</span></button>`).join("")}</div>`;
   box.querySelectorAll(".card-btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
   thread().appendChild(box);
+}
+
+// A compact claim summary, built by the backend from the claims system (not written by the model).
+const TYPE_NAMES = { healthcare: "Healthcare", dental: "Dental", auto: "Auto" };
+function addClaimCard(c) {
+  const rows = [];
+  if (c.reason) rows.push(["Why", esc(c.reason.charAt(0).toUpperCase() + c.reason.slice(1))]);
+  if (c.documents_needed?.length) rows.push(["Needed", `<div class="docs">${c.documents_needed.map((d) => `<span>${esc(d)}</span>`).join("")}</div>`]);
+  if (c.appeal_deadline) {
+    const left = c.deadline_passed ? `<span class="days late">deadline passed</span>` : `<span class="days">${c.days_left} day${c.days_left === 1 ? "" : "s"} left</span>`;
+    rows.push(["Appeal by", `${esc(c.appeal_deadline)} · ${left}`]);
+  }
+  if (c.expected_payment) rows.push(["Expected", esc(c.expected_payment)]);
+  if (c.paid_so_far) rows.push(["Paid so far", esc(c.paid_so_far)]);
+  const el = document.createElement("div");
+  el.className = "claim";
+  el.innerHTML = `<div class="claim-head"><span class="label">Claim ${esc(c.case_id)}</span><span class="status ${esc(c.status)}">${esc(c.status.charAt(0).toUpperCase() + c.status.slice(1))}</span></div>
+    <h4>${esc(TYPE_NAMES[c.claim_type] || c.claim_type)} claim <span>· filed ${esc(c.filed_on)}</span></h4>
+    ${rows.length ? `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}`;
+  thread().appendChild(el); scroll();
 }
 
 const ended = () => state && ["HANDOFF", "CLOSED"].includes(state.phase);
@@ -303,7 +340,7 @@ async function showData() {
   }).join("");
   const reps = d.representatives.map((r) => `<div class="person"><div class="n"><span>${esc(r.rep_name)} <span class="muted small" style="font-weight:400">· ${esc(r.relationship)} of ${esc(r.buyer_name)}</span></span>
       <button class="use" data-say="${esc(STARTERS[3][1])}">Use</button></div><div class="f">Authorized representative. Needs the policyholder's approval.</div></div>`).join("");
-  $("#dataBody").innerHTML = `<p class="muted small" style="margin:0">Any 3 of name, date of birth, phone, email or SSN/ID last 4 will verify.</p>
+  $("#dataBody").innerHTML = `<p class="muted small" style="margin:0">You're playing the caller. Pick a fictional customer below, then give the agent any three of their details (name, date of birth, phone, email, or SSN/ID last 4) to get verified. <b>Use</b> puts a ready-made message in the box.</p>
     ${people}${reps}
     <div class="setting"><span>When a representative calls, the policyholder…</span>
       <select id="consentSel"><option value="default">approves</option><option value="timeout">doesn't respond</option></select></div>`;
@@ -451,6 +488,13 @@ $("#modelForm").onsubmit = async (e) => {
   }
 };
 $("#modelBtn").onclick = () => openModel();
+
+// A dialog's Close button shouldn't show a focus ring just because the dialog opened.
+const nativeShowModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  nativeShowModal.call(this);
+  if (document.activeElement?.matches?.(".nav-link")) document.activeElement.blur();
+};
 
 // ---------- wiring ----------
 function autosize() {

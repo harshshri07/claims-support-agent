@@ -181,3 +181,33 @@ def test_no_invented_commitments():
     assert not unauthorized_commitments("Would you like me to connect you with a representative?", set())
     # legitimate when the step really performs the action
     assert not unauthorized_commitments("A representative will follow up, reference HX-1.", {"handoff"})
+
+
+# ---- reply layout --------------------------------------------------------------------
+def test_tidy_splits_long_paragraph_and_isolates_question():
+    from app.sop.formatting import tidy
+    raw = ("Your healthcare claim CL-2048 was denied on January 12, 2026 because the review file was missing two documents. "
+           "You have until March 18, 2026 to appeal or resubmit them, so there is still time. The pathology report is the "
+           "first one needed and the office note is the second. Would you like help getting them?")
+    out = tidy(raw)
+    paras = out.split("\n\n")
+    assert len(paras) >= 3 and paras[-1] == "Would you like help getting them?"
+    assert all(len(p.split(". ")) <= 2 for p in paras[:-1])
+    assert "**CL-2048**" in out and "**January 12, 2026**" in out and "**March 18, 2026**" in out
+
+
+def test_tidy_is_idempotent_and_keeps_authored_structure():
+    from app.sop.formatting import tidy
+    authored = "Here is what I need:\n\n- Date of birth\n- Phone number\n\nWhich would you like to share?"
+    assert tidy(authored) == authored
+    once = tidy("Claim CL-2048 is open and the expected payment is $3,200.00 as of March 5, 2026.")
+    assert tidy(once) == once and "**$3,200.00**" in once
+
+
+def test_tidy_does_not_split_on_abbreviations_or_amounts():
+    from app.sop.formatting import tidy
+    raw = ("Please ask Dr. Smith at the clinic for a replacement copy of the report, and send the allowed amount of $1,450.00 "
+           "details along with it. Once we receive the files the review restarts. It usually takes less than a week.")
+    out = tidy(raw)
+    assert "Dr. Smith" in out and "\n\nSmith" not in out
+    assert "$1,450.00" in out

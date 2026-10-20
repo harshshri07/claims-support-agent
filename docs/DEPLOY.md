@@ -5,7 +5,7 @@ The whole app (backend + UI) is one Docker service, so one host serves both. Two
 | | What you get |
 |---|---|
 | **Render** | Public URL for the backend and the UI, from this repo using `render.yaml` |
-| **Docker image** | `ghcr.io/harshshri07/insurance-claims-sop-agent:latest`, built by GitHub Actions on every push to `main` |
+| **Docker image** | Build it from the `Dockerfile`; optionally publish to `ghcr.io/<owner>/<repo>` by running the workflow by hand |
 
 ---
 
@@ -53,12 +53,13 @@ memory and reset when the service restarts.
 
 ## 3. Docker image (GitHub Container Registry)
 
-Every push to `main` runs the unit tests, then builds and publishes the image (`.github/workflows/docker-publish.yml`).
-After the first run, make the package public: GitHub → your profile → **Packages** → the image → **Package
-settings → Change visibility → Public**.
+Every push to `main` runs the unit tests (`.github/workflows/docker-publish.yml`). Publishing the image is
+**manual only**: Actions tab → *test-build-publish* → **Run workflow**. After the first publish, make the package
+public if you want others to pull it: GitHub → your profile → **Packages** → the image → **Package settings →
+Change visibility → Public**.
 
 ```bash
-docker pull ghcr.io/harshshri07/insurance-claims-sop-agent:latest
-docker run -p 8000:8000 -e OPENAI_API_KEY=sk-... ghcr.io/harshshri07/insurance-claims-sop-agent:latest     # any provider, see .env.example
+docker pull ghcr.io/<owner>/<repo>:latest
+docker run -p 8000:8000 -e OPENAI_API_KEY=sk-... ghcr.io/<owner>/<repo>:latest     # any provider, see .env.example
 # or with no key at all: open http://localhost:8000 and click "Add your API key"
 ```
