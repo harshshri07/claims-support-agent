@@ -1,0 +1,12 @@
+fastapi==0.146.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+python-dotenv==1.2.4
+boto3==1.43.114
+PyYAML==6.0.3
+# model providers (Bedrock uses boto3 above)
+anthropic==1.15.0
+openai==3.35.1
+# tests
+pytest==9.1.1
+httpx==0.28.1

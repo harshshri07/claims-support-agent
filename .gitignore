@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.zip
+dist/
+apps/insurance_claims/backend/tests/scenarios/last_report.json

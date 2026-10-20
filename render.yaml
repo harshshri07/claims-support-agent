@@ -1,0 +1,32 @@
+# Render Blueprint: one Docker web service for the whole demo (backend + UI).
+# render.com → New → Blueprint → pick this repo. You'll be asked for the two secret values.
+services:
+  - type: web
+    name: harborview-claims-sop-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: LLM_PROVIDER
+        value: bedrock
+      - key: AWS_REGION
+        value: us-east-1
+      - key: BEDROCK_MODEL_ID
+        value: us.anthropic.claude-haiku-4-5-20251001-v1:0
+      # secrets: entered in the Render dashboard, never committed
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      # visitors may only use these models on the shared key (anything else needs their own key)
+      - key: SERVER_KEY_MODELS
+        value: us.anthropic.claude-haiku-4-5-20251001-v1:0,us.anthropic.claude-sonnet-4-5-20250929-v1:0
+      # per-visitor limits: requests / seconds
+      - key: RATE_LIMITS
+        value: chat=40/600,session=20/600,model=20/600
+      - key: DEMO_TODAY
+        value: "2026-03-05"
+      - key: ALLOW_UI_LLM_CONFIG
+        value: "true"
