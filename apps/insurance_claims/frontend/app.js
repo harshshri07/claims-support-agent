@@ -160,9 +160,9 @@ async function newChat() {
 function showHero() {
   const el = document.createElement("div");
   el.className = "hero"; el.id = "hero";
-  el.innerHTML = `<div class="status"><span class="sdot"></span><span class="label">SOP-guided agent · live demo</span></div>
-    <h1>Claims support that <em>follows the rules.</em></h1>
-    <p class="sub">It verifies who you are, remembers what you say, and answers only from the claim file.</p>
+  el.innerHTML = `<div class="status"><span class="sdot"></span><span class="label">Live demo · fictional customers</span></div>
+    <h1>Ask about your claim.<br><em>Get a straight answer.</em></h1>
+    <p class="sub">The agent confirms who you are first, remembers what you tell it, and answers only from your claim file. Nothing is guessed.</p>
     <div class="try">${SCENARIOS.map((c, i) => `<button class="btn big ${c.primary ? "" : "ghost"}" data-i="${i}" title="${esc(c.tip)}">${esc(c.title)}${c.primary ? ' <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ""}</button>`).join("")}</div>
     <p class="try-note">Each button sends a ready-made caller message. Or write your own below.</p>`;
   el.querySelectorAll(".try .btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));

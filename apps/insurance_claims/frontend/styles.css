@@ -144,9 +144,9 @@ body.landing .msg.agent { box-shadow: var(--soft-shadow); }
 .hero .status { display: inline-flex; align-items: center; gap: 9px; padding: 5px 13px; border-radius: 99px; background: var(--stone); margin-bottom: 20px; }
 .hero .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(176, 118, 54, .16); }
 .hero .status .label { color: var(--accent-ink); font-weight: 500; }
-.hero h1 { margin: 0; font-size: clamp(40px, 5.4vw, 74px); font-weight: 500; letter-spacing: -0.055em; line-height: 1; text-wrap: balance; }
-.hero h1 em { display: inline-block; font: italic 400 1.06em/1 var(--serif); letter-spacing: -0.02em; color: var(--accent); padding: 0 .04em .04em 0; }
-.hero p.sub { margin: 20px 0 0; max-width: 540px; font-size: 18px; line-height: 1.55; letter-spacing: -0.008em; color: var(--ink-2); text-wrap: balance; }
+.hero h1 { margin: 0; font-size: clamp(38px, 4.6vw, 64px); font-weight: 500; letter-spacing: -0.045em; line-height: 1.06; }
+.hero h1 em { display: inline-block; font: italic 400 1.1em/1.05 var(--serif); letter-spacing: -0.015em; color: var(--accent); padding: 0 .05em .06em 0; }
+.hero p.sub { margin: 22px 0 0; max-width: 500px; font-size: 17.5px; line-height: 1.6; letter-spacing: -0.006em; color: var(--ink-2); text-wrap: pretty; }
 .try { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
 .try-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); }
 .btn svg { flex: none; }
