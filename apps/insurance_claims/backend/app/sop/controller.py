@@ -35,8 +35,7 @@ log = logging.getLogger(__name__)
 
 GREETING = ("Hi, I'm Alex from claims support.\n\n"
             "Before I can open a claim, I need to verify who I'm speaking with. Please share any three of these:\n\n"
-            "- Full name\n- Date of birth\n- Phone number on file\n- Email address on file\n- Last four digits of your SSN\n\n"
-            "You can also tell me what you're calling about, and I'll pick it up as soon as you're verified.")
+            "- Full name\n- Date of birth\n- Phone number on file\n- Email address on file\n- Last four digits of your SSN")
 
 # What the agent may say about verification itself (never anything about the account or claims).
 VERIFICATION_FAQ = {

@@ -22,10 +22,10 @@ const STARTERS = [
   ["Calling for a parent", "Hi, I'm David Chen, calling for my mom Margaret Chen. Her date of birth is March 15, 1985 and her SSN ends in 4472."],
 ];
 const SCENARIOS = [
-  { title: "Demo case", primary: true, tip: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
-  { title: "Frustrated caller", tip: "Pushes to skip verification. Tests empathy and the security gates.", text: STARTERS[1][1] },
-  { title: "Off-topic question", tip: "Asks 'What is RL?'. Tests scope limits and the human handoff.", text: STARTERS[2][1] },
-  { title: "Calling for a parent", tip: "A son calls for his mother. Needs her approval before anything is shared.", text: STARTERS[3][1] },
+  { title: "Demo case", start: true, desc: "Margaret gives her details and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
+  { title: "Frustrated caller", desc: "“I already told you who I am. This is ridiculous. Just tell me why my claim was denied.”", text: STARTERS[1][1] },
+  { title: "Off-topic question", desc: "“What is RL?” Checks that it politely declines unrelated questions.", text: STARTERS[2][1] },
+  { title: "Calling for a parent", desc: "A son calls about his mother's claim. Her approval is needed before anything is shared.", text: STARTERS[3][1] },
 ];
 
 let sid = null, state = null, traces = [], busy = false, userTurns = 0, consent = "default";
@@ -160,7 +160,8 @@ async function newChat() {
 function showHero() {
   const el = document.createElement("div");
   el.className = "hero"; el.id = "hero";
-  el.innerHTML = `<h1>Claims support</h1>
+  el.innerHTML = `<div class="eyebrow"><span class="sdot"></span><span class="label">Demo environment · fictional customers</span></div>
+    <h1>Claims support</h1>
     <p class="sub">Verify your identity to get started. You can then ask about the status of a claim, the documents it needs, deadlines and next steps.</p>`;
   thread().prepend(el);
 }
@@ -169,9 +170,10 @@ function showHero() {
 function showScenarios() {
   const el = document.createElement("div");
   el.className = "scenarios"; el.id = "scenarios";
-  el.innerHTML = `<span class="label">Test scenarios</span>
-    <div class="try">${SCENARIOS.map((c, i) => `<button class="btn ${c.primary ? "" : "ghost"}" data-i="${i}" title="${esc(c.tip)}">${esc(c.title)}</button>`).join("")}</div>`;
-  el.querySelectorAll(".try .btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
+  el.innerHTML = `<span class="label">Test scenarios · click one to send it</span>
+    <div class="cards">${SCENARIOS.map((c, i) => `<button class="scn${c.start ? " start" : ""}" data-i="${i}" title="${esc(c.text)}">
+      <b>${esc(c.title)}${c.start ? '<span class="tag">Start here</span>' : ""}</b><span>${esc(c.desc)}</span></button>`).join("")}</div>`;
+  el.querySelectorAll(".scn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
   thread().appendChild(el);
 }
 
