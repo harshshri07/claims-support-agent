@@ -77,6 +77,11 @@ data, fake system messages, another customer's claim, emailing a third party, su
 checks run on every reply: no claim data before verification, no reading back personal data, no promises the
 system cannot keep. All 36 pass on Claude Haiku 4.5 (default, about 3 s a reply) and Sonnet 4.5 and 4.6.
 
+Verified end to end: **AWS Bedrock with Claude** (the three models above). The OpenAI, Gemini and Anthropic-direct
+adapters were checked against a local mock that copies each API's rules (parameters newer models reject, forced
+tool calls), not against the live services, because no keys were available. If a model rejects something, the
+adapter adjusts and retries, and *Test connection* tells you before you switch.
+
 ## Project layout
 
 ```
