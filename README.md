@@ -21,7 +21,7 @@ where the brief allows it (RESOLVE_INTENT and PROCESS_CASE), over tools that can
 
 ## Live demo
 
-**▶ https://LIVE-DEMO-URL** *(hosted on Render; the first visit after idle can take ~30–60 s to wake)*
+**▶ https://claims-support-agent.onrender.com** *(hosted on Render; the first visit after idle can take ~30–60 s to wake)*
 
 It's ready to use with a shared demo key. To test with your own model, click **Use your own API key** (top right).
 Your key applies only to your own browser tab.
