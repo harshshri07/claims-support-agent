@@ -1,17 +1,11 @@
 # Deploying the demo
 
-The whole app (backend + UI) is one Docker service. Three ways to run it:
+The whole app (backend + UI) is one Docker service, so one host serves both. Two ways to run it:
 
 | | What you get |
 |---|---|
-| **Render** (recommended) | Public URL from this repo using `render.yaml` |
+| **Render** | Public URL for the backend and the UI, from this repo using `render.yaml` |
 | **Docker image** | `ghcr.io/<owner>/<repo>:latest`, built by GitHub Actions on every push to `main` |
-| **Vercel + Render** (optional) | UI on Vercel's CDN, backend on Render |
-
-> Why not Vercel for everything? Vercel runs Python as short-lived serverless functions without shared memory,
-> and each conversation's state (verification, memory, open claim) lives in the backend's memory. On Vercel a
-> conversation could lose its state between messages. The UI is static, so it can be on Vercel; the backend needs
-> a long-running server (Render, Fly, Railway, any Docker host).
 
 ---
 
@@ -68,12 +62,3 @@ docker pull ghcr.io/<owner>/<repo>:latest
 docker run -p 8000:8000 -e OPENAI_API_KEY=sk-... ghcr.io/<owner>/<repo>:latest     # any provider, see .env.example
 # or with no key at all: open http://localhost:8000 and click "Add your API key"
 ```
-
-## 4. Optional: UI on Vercel
-
-1. Deploy the backend on Render first (step 2).
-2. Set `window.API_BASE` in `apps/insurance_claims/frontend/config.js` to the Render URL and commit.
-3. vercel.com → **Add New → Project** → this repo → **Root Directory** `apps/insurance_claims/frontend`, framework
-   **Other**, no build command. `vercel.json` maps the `/static/...` paths.
-
-The backend allows cross-origin calls, so the Vercel UI can talk to it directly.

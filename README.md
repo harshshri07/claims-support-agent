@@ -152,7 +152,7 @@ backend/tests/         unit tests + live scenarios
 API: `POST /api/session`, `POST /api/chat` (`{reply, explain, trace, state}`), `GET /api/session/{id}`,
 `GET /api/session/{id}/outbox`, `GET|POST /api/model`, `POST /api/model/test`, `GET /api/sop`.
 
-Deploying (Render, the Docker image, optional Vercel UI, a Bedrock-only IAM policy): [docs/DEPLOY.md](docs/DEPLOY.md).
+Deploying (Render, the Docker image, a Bedrock-only IAM policy): [docs/DEPLOY.md](docs/DEPLOY.md).
 Hosting safety: a visitor's key/model applies only to their own browser tab; the shared key is limited to
 `SERVER_KEY_MODELS`; each visitor is rate-limited (`RATE_LIMITS`).
 

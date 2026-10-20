@@ -41,7 +41,7 @@ const CHIPS = {
 
 let sid = null, state = null, traces = [], busy = false, userTurns = 0, consent = "default";
 
-// Backend address: same origin by default; set window.API_BASE in config.js when the UI is hosted separately (e.g. Vercel).
+// Backend address: same origin by default (the backend serves this UI); see config.js.
 const API_BASE = (window.API_BASE || "").replace(/\/$/, "");
 // A random id for this browser tab: a model/key chosen here applies to this tab only, never to other visitors.
 const CLIENT_ID = (() => {
