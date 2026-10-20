@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: insurance-sop-agent:latest
+    image: claims-support-agent:latest
     ports:
       - "8000:8000"
     env_file:
