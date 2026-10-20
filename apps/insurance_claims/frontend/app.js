@@ -21,6 +21,18 @@ const STARTERS = [
   ["Off-topic question", "What is RL?"],
   ["Calling for a parent", "Hi, I'm David Chen, calling for my mom Margaret Chen. Her date of birth is March 15, 1985 and her SSN ends in 4472."],
 ];
+const ICONS = {
+  play: '<circle cx="12" cy="12" r="9"/><path d="m10.2 8.6 5 3.4-5 3.4z"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M12 8.5v3.6M12 15.4h.01"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.8-1.1 1.6M12 16.6h.01"/>',
+  people: '<circle cx="9" cy="8.2" r="3.1"/><path d="M3.6 19c.4-3 2.5-4.7 5.4-4.7s5 1.7 5.4 4.7"/><circle cx="17.2" cy="9.6" r="2.3"/><path d="M16.3 14.4c2.3-.2 3.9 1.1 4.4 3.5"/>',
+};
+const SCENARIOS = [
+  { icon: "play", title: "Run the demo case", desc: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
+  { icon: "chat", title: "Frustrated caller", desc: "Pushes to skip verification. Tests empathy and the security gates.", text: STARTERS[1][1] },
+  { icon: "help", title: "Off-topic question", desc: "Asks “What is RL?”. Tests scope limits and the human handoff.", text: STARTERS[2][1] },
+  { icon: "people", title: "Calling for a parent", desc: "A son calls for his mother. Needs her approval before anything is shared.", text: STARTERS[3][1] },
+];
 const CHIPS = {
   RESOLVE_INTENT: [["The denied one", "The one that was denied."], ["My auto claim", "What's the status of my auto claim?"]],
   PROCESS_CASE_DOCS: [
@@ -86,7 +98,7 @@ function addMsg(role, text) {
   el.innerHTML = format(text);
   thread().appendChild(agentRow(el)); scroll();
 }
-const AVATAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="logo-shield" d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/><path class="logo-check" d="m8.6 12 2.4 2.4 4.4-4.6"/></svg>`;
+const AVATAR = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="3" height="14" rx="1.5"/><rect x="15" y="5" width="3" height="14" rx="1.5"/><path d="M9 12.6c1-1.6 2-1.6 3 0s2 1.6 3 0"/></svg>`;
 function agentRow(el) {
   const row = document.createElement("div");
   row.className = "agent-row";
@@ -125,6 +137,7 @@ async function send(text) {
   if (!text || busy || !sid) return;
   busy = true; lockInput();
   $("#input").value = ""; autosize();
+  $("#scenarios")?.remove();
   addMsg("user", text); userTurns++; renderChips(true);
   typing(true);
   try {
@@ -139,7 +152,7 @@ async function send(text) {
   } catch (e) {
     typing(false);
     if (e.status === 409) {
-      thread().lastElementChild?.remove(); userTurns--; renderChips();
+      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) showScenarios(); renderChips();
       $("#input").value = text; openModel("Connect a model first, or choose “No model (rules-only check)”.");
     } else addNote(`Something went wrong: ${esc(e.message)}`, "warn");
   } finally {
@@ -154,7 +167,18 @@ async function newChat() {
   const r = await api("/api/session", { consent_scenario: consent });
   sid = r.session_id; state = r.state;
   addMsg("agent", r.reply);
+  showScenarios();
   render(); lockInput(); $("#input").focus();
+}
+
+function showScenarios() {
+  const box = document.createElement("div");
+  box.className = "scenarios"; box.id = "scenarios";
+  box.innerHTML = `<h3>Try a scenario</h3><div class="cards">${SCENARIOS.map((c, i) => `
+    <button class="card-btn" data-i="${i}"><span class="ic"><svg viewBox="0 0 24 24">${ICONS[c.icon]}</svg></span>
+    <span><b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></span></button>`).join("")}</div>`;
+  box.querySelectorAll(".card-btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
+  thread().appendChild(box);
 }
 
 const ended = () => state && ["HANDOFF", "CLOSED"].includes(state.phase);
@@ -191,7 +215,10 @@ function renderStrip() {
 
 function renderIds() {
   const v = state.verification, mem = state.memory;
-  $("#idHint").textContent = v.verified ? "Verified" : "3 needed";
+  const given = Math.min(v.collected.length, 3);
+  $("#idHint").textContent = v.verified ? "Verified" : `${given} of 3`;
+  $("#idBar").className = `idbar ${v.verified ? "done" : ""}`;
+  $("#idBar").innerHTML = [0, 1, 2].map((i) => `<i class="${v.verified || i < given ? "on" : ""}"></i>`).join("");
   let rows = IDS.map(([k, label]) => {
     const s = mem[`identity.${k}`];
     let badge = `<span class="badge">Not given</span>`;
@@ -248,7 +275,7 @@ function renderTrace() {
 function renderChips(clear) {
   const key = state.phase === "PROCESS_CASE" && state.active_case_needs_documents ? "PROCESS_CASE_DOCS"
     : state.phase === "POST_PROCESS" && state.pending_offer !== "email" ? "POST_PROCESS_DONE" : state.phase;
-  let list = clear ? [] : userTurns === 0 ? STARTERS : CHIPS[key] || [];
+  let list = clear || userTurns === 0 ? [] : CHIPS[key] || [];
   if (!clear && ended()) {
     $("#chips").innerHTML = `<button class="chip" id="restart">Start a new chat</button>`;
     $("#restart").onclick = newChat; return;
@@ -274,7 +301,7 @@ async function showData() {
       <div class="f">DOB ${esc(p.dob)} · ${p.id_type === "ssn_last4" ? "SSN" : "National ID"} ${esc(p.id_last4)} · ${esc(p.phone)} · ${esc(p.email)}</div>
       ${p.name_aliases ? `<div class="f">Also accepts: ${esc(p.name_aliases.join(", "))}</div>` : ""}</div>`;
   }).join("");
-  const reps = d.representatives.map((r) => `<div class="person"><div class="n">${esc(r.rep_name)} <span class="muted small">${esc(r.relationship)} of ${esc(r.buyer_name)}</span>
+  const reps = d.representatives.map((r) => `<div class="person"><div class="n"><span>${esc(r.rep_name)} <span class="muted small" style="font-weight:400">· ${esc(r.relationship)} of ${esc(r.buyer_name)}</span></span>
       <button class="use" data-say="${esc(STARTERS[3][1])}">Use</button></div><div class="f">Authorized representative. Needs the policyholder's approval.</div></div>`).join("");
   $("#dataBody").innerHTML = `<p class="muted small" style="margin:0">Any 3 of name, date of birth, phone, email or SSN/ID last 4 will verify.</p>
     ${people}${reps}
@@ -299,9 +326,9 @@ let models = null;
 async function refreshModel() {
   models = await api("/api/model");
   const short = (m) => (m || "").replace(/^(us|eu|apac|global)\.[a-z]+\./, "").replace(/-\d{8}(-v\d+:\d+)?$/, "");
-  $("#modelName").textContent = models.configured ? (models.provider === "rules" ? "No model (rules-only)" : short(models.model) || models.provider_label) : "Connect a model";
+  $("#modelName").textContent = models.configured ? (models.provider === "rules" ? "Rules only" : short(models.model) || models.provider_label) : "No model";
   $("#modelBtn").title = models.configured ? `Using ${models.provider_label}${models.model ? " · " + models.model : ""}. Click to switch model or use your own API key.` : "Add your API key to start";
-  $("#modelCta").textContent = models.configured ? "Use your own API key" : "Add your API key to start";
+  $("#modelCta").textContent = models.configured ? "Use your own key" : "Add your API key";
   $("#mdot").className = `mdot ${models.configured ? "on" : "off"}`;
   return models;
 }
@@ -446,4 +473,5 @@ document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (
 refreshModel().then((m) => {
   if (!m.configured || m.error || new URLSearchParams(location.search).has("model")) openModel(m.error ? `The server's model setup failed: ${m.error}` : undefined);
 }).catch(() => {});
+if (new URLSearchParams(location.search).has("identities")) setTimeout(showData, 300);   // direct link to the test identities
 newChat().then(async () => { for (const q of new URLSearchParams(location.search).getAll("say")) await send(q); });
