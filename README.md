@@ -48,8 +48,7 @@ Then open **http://localhost:8000**.
 Either:
 
 - **`.env`**: copy `.env.example` to `.env` and set one provider's token, e.g. `OPENAI_API_KEY=…`,
-  `ANTHROPIC_API_KEY=…`, `GEMINI_API_KEY=…`, Azure OpenAI, AWS Bedrock, or any OpenAI-compatible endpoint
-  (Ollama, OpenRouter, Groq…). Or,
+  `ANTHROPIC_API_KEY=…`, `GEMINI_API_KEY=…`, or AWS Bedrock credentials (the default). Or,
 - **in the UI**: click **Use your own API key** (top right; it also opens on first visit if no key is set). Choose a provider, paste the token, *Test connection*,
   *Connect*. The token is held in server memory only: never written to disk or returned by the API.
 
@@ -141,7 +140,7 @@ backend/app/sop/       controller.py (turn loop), phases.py (the SOP as data), s
                        guards.py, emotion.py, handoff.py, explain.py
 backend/app/nlu/       regex pre-extraction, normalizers, LLM extractor
 backend/app/data/      fixture access (scoped to the verified caller), guideline rule engine, document matcher
-backend/app/llm/       model adapters (OpenAI/Azure/Gemini/compatible, Anthropic, Bedrock) + runtime registry
+backend/app/llm/       model adapters (OpenAI/Gemini, Anthropic, Bedrock) + runtime registry
 backend/tests/         unit tests + live scenarios
 ```
 

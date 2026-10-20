@@ -7,6 +7,4 @@ services:
     env_file:
       - path: .env
         required: false   # without .env, connect a model from the UI's "Model" dialog
-    extra_hosts:
-      - "host.docker.internal:host-gateway"   # lets the container reach Ollama/LM Studio on your machine
     restart: unless-stopped

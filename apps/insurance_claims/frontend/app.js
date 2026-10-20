@@ -370,8 +370,7 @@ const shortModel = (m) => (m || "").replace(/^(us|eu|apac|global)\.[a-z0-9]+\./,
 function modelOptions(list, selected) {
   const opts = [...new Set(list.filter(Boolean))];
   if (selected && selected !== OTHER && !opts.includes(selected)) opts.unshift(selected);
-  return opts.map((m) => `<option value="${esc(m)}" title="${esc(m)}" ${m === selected ? "selected" : ""}>${esc(shortModel(m))}</option>`).join("")
-    + `<option value="${OTHER}" ${selected === OTHER ? "selected" : ""}>Other (type a name)…</option>`;
+  return opts.map((m) => `<option value="${esc(m)}" title="${esc(m)}" ${m === selected ? "selected" : ""}>${esc(shortModel(m))}</option>`).join("");
 }
 
 function renderProviderFields() {
@@ -383,17 +382,17 @@ function renderProviderFields() {
   } else {
     $("#providerFields").innerHTML = meta.fields.map((f) => {
       const [label, type] = FIELD[f];
-      if (f === "model" && p !== "azure") {
+      if (f === "model") {
         const current = models.provider === p ? models.model : sameAsConnected ? models.server_model : meta.model;
         const list = sameAsConnected && models.server_key_models?.length ? [...models.server_key_models] : [...(meta.suggested || [])];
         const selected = current || list[0] || OTHER;
         return `<label class="field"><span>Model <small id="modelStatus"></small></span>
           <select id="modelChoice">${modelOptions(list, selected)}</select>
-          <input id="modelOther" type="text" placeholder="${p === "openai_compatible" ? "e.g. qwen2.5:14b" : "exact model name"}" ${selected === OTHER ? "" : "hidden"}></label>`;
+          <input id="modelOther" type="text" placeholder="exact model name" ${selected === OTHER ? "" : "hidden"}></label>`;
       }
       const def = f === "region" ? meta.region : f === "api_version" ? meta.api_version : f === "base_url" ? meta.base_url
         : f === "model" ? (models.provider === p ? models.model : "") : "";
-      const label2 = p === "azure" && f === "base_url" ? "Endpoint" : p === "azure" && f === "model" ? "Deployment name" : label;
+      const label2 = label;
       const ph = type === "password" && sameAsConnected ? "Leave blank to use the shared demo key" : (hints[f] || "");
       return `<label class="field"><span>${label2}</span><input name="${f}" type="${type}" value="${esc(def || "")}" placeholder="${esc(ph)}" ${type === "password" ? 'autocomplete="new-password"' : ""}>${hints[f] && def ? `<small>${esc(hints[f])}</small>` : ""}</label>`;
     }).join("");
@@ -402,7 +401,7 @@ function renderProviderFields() {
     // reload the real model list whenever the credentials change
     $("#providerFields").querySelectorAll('input[name="api_key"], input[name="aws_access_key_id"], input[name="aws_secret_access_key"], input[name="base_url"], input[name="region"]')
       .forEach((i) => i.addEventListener("input", () => { clearTimeout(listTimer); listTimer = setTimeout(loadModels, 700); }));
-    if (sameAsConnected || p === "openai_compatible") loadModels();
+    if (sameAsConnected) loadModels();
   }
   $("#modelResult").className = "result"; $("#modelResult").textContent = "";
 }
@@ -413,7 +412,7 @@ async function loadModels() {
   if (!choice) return;
   const body = modelPayload(); delete body.model;
   const p = body.provider, sameAsConnected = models.server_provider === p;
-  const hasCreds = body.api_key || body.aws_access_key_id || (p === "openai_compatible" && body.base_url);
+  const hasCreds = body.api_key || body.aws_access_key_id;
   if (!hasCreds && !sameAsConnected) { status.textContent = "· enter your key to load the full list"; return; }
   const seq = ++listSeq;
   status.textContent = "· loading available models…";
@@ -424,7 +423,7 @@ async function loadModels() {
       const keep = choice.value;
       const preferred = keep !== OTHER && r.models.includes(keep) ? keep : r.models.includes(models.providers[p].model) ? models.providers[p].model : r.models[0];
       choice.innerHTML = modelOptions(r.models, keep === OTHER ? OTHER : preferred);
-      status.textContent = `· ${r.models.length} listed for this key (Test connection confirms access)`;
+      status.textContent = `· ${r.models.length} suited to this app`;
     } else {
       status.textContent = r.error ? "· couldn't load the list, showing suggestions" : "· no models found";
     }
@@ -442,7 +441,7 @@ function modelPayload() {
 async function openModel(intro) {
   await refreshModel();
   const sel = $("#provider");
-  sel.innerHTML = Object.entries(models.providers).map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
+  sel.innerHTML = Object.entries(models.providers).filter(([k]) => k !== "rules").map(([k, v]) => `<option value="${k}">${esc(v.label)}</option>`).join("");
   sel.value = models.provider || "openai";
   renderProviderFields();
   const allowed = models.ui_config_allowed;

@@ -129,13 +129,13 @@ is frustration, not a refusal to give a date of birth.
 ## 8. Any model
 
 `apps/insurance_claims/backend/app/llm/` has three adapters: Bedrock Converse, Anthropic Messages, and OpenAI Chat Completions. The
-OpenAI one also covers Azure, Gemini's OpenAI endpoint, and any compatible server (Ollama, LM Studio, OpenRouter,
-Groq, vLLM). A small registry holds the active model. It's configured from `.env` or at runtime from the UI, and
+OpenAI one also covers Gemini's OpenAI endpoint. Supported providers are OpenAI, Anthropic, Gemini and AWS Bedrock;
+each lists only the models that suit the app. A small registry holds the active model. It's configured from `.env` or at runtime from the UI, and
 the key is held in memory, never persisted or echoed. The harness needs only two capabilities from a model: plain
 completion and tool calling.
 
 The live suite (20 functional + 16 adversarial conversations) passes 36/36 on Claude Haiku 4.5 and on Sonnet 4.5.
-The functional part also passed through the OpenAI-compatible adapter. The
+The functional part also passed through the OpenAI adapter. The
 Anthropic adapter was also exercised end to end.
 
 ## 9. Reply layout and the UI

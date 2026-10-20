@@ -172,7 +172,7 @@ def model_list(body: ModelIn, request: Request):
         return {"models": allowed, "note": "shared demo key"}
     try:
         body.model = body.model or (allowed[0] if allowed and not own_key else "")
-        return {"models": llm_registry.list_models(_cfg(body))}
+        return llm_registry.list_models(_cfg(body))
     except HTTPException as ex:
         return {"models": [], "error": ex.detail}
     except Exception as ex:  # noqa: BLE001 - the UI falls back to the suggested list
