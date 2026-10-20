@@ -85,7 +85,7 @@ same data comes back as `explain` in the API.
 
 ## Try it
 
-The page opens on a landing screen with four scenario buttons. **Test identities** (top right) lists the fixture
+The page opens on a landing screen with four labelled test scenarios. **Test identities** (top right) lists the fixture
 customers, each with a *Use* button. Once the chat starts, the **"You could say"** suggestions above the input are
 built from the actual conversation: the real document names on the open claim, the real claims when the agent asks
 "which one?", the amounts on a closed claim, and yes/no when it has just offered an email or a transfer. They contain

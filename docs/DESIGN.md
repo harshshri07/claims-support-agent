@@ -153,13 +153,13 @@ the claims system and not from the model's words, so the facts at a glance can't
 agent's text can stay short.
 
 The interface follows goaly.ai's visual language: warm off-white, ink with tinted greys, a single copper accent,
-hairlines, pill buttons, Instrument Sans for the interface, DM Serif Display italic for emphasis and Geist Mono for
-small uppercase labels. The product name is deliberately generic ("Claims Support Agent"); the starter data names no
-insurer, so none is invented.
+hairlines, pill buttons, Instrument Sans for the interface and Geist Mono for small uppercase labels. The tone is
+deliberately plain: no slogans or marketing copy. The product name is generic ("Claims Support Agent"); the starter
+data names no insurer, so none is invented.
 
-The page has two states. It opens on a **landing screen** (headline, scenario buttons, the opening message, one
-input box) and switches to the **chat** with a single side rail (progress, identity tags, what was remembered) after
-the first message.
+The page has two states. It opens on a **landing screen** (a plain headline and one sentence on what the agent can
+help with, the opening message, labelled *test scenarios*, one input box) and switches to the **chat** with a single
+side rail (progress, identity tags, what was remembered) after the first message.
 
 Follow-up suggestions (`app/sop/suggestions.py`) are deterministic and grounded, like the claim card. They are
 derived from the workflow state: the phase, the pending question, the verified caller's real claim (document names,

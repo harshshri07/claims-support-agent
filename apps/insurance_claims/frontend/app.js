@@ -22,7 +22,7 @@ const STARTERS = [
   ["Calling for a parent", "Hi, I'm David Chen, calling for my mom Margaret Chen. Her date of birth is March 15, 1985 and her SSN ends in 4472."],
 ];
 const SCENARIOS = [
-  { title: "Run the demo case", primary: true, tip: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
+  { title: "Demo case", primary: true, tip: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
   { title: "Frustrated caller", tip: "Pushes to skip verification. Tests empathy and the security gates.", text: STARTERS[1][1] },
   { title: "Off-topic question", tip: "Asks 'What is RL?'. Tests scope limits and the human handoff.", text: STARTERS[2][1] },
   { title: "Calling for a parent", tip: "A son calls for his mother. Needs her approval before anything is shared.", text: STARTERS[3][1] },
@@ -121,7 +121,7 @@ async function send(text) {
   if (!text || busy || !sid) return;
   busy = true; lockInput();
   $("#input").value = ""; autosize();
-  document.body.classList.remove("landing"); $("#hero")?.remove();
+  document.body.classList.remove("landing"); $("#hero")?.remove(); $("#scenarios")?.remove();
   addMsg("user", text); userTurns++; renderChips(true);
   typing(true);
   try {
@@ -136,7 +136,7 @@ async function send(text) {
   } catch (e) {
     typing(false);
     if (e.status === 409) {
-      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) { document.body.classList.add("landing"); showHero(); } renderChips();
+      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) { document.body.classList.add("landing"); showHero(); showScenarios(); } renderChips();
       $("#input").value = text; openModel("Connect a model first, or choose “No model (rules-only check)”.");
     } else addNote(`Something went wrong: ${esc(e.message)}`, "warn");
   } finally {
@@ -152,7 +152,7 @@ async function newChat() {
   const r = await api("/api/session", { consent_scenario: consent });
   sid = r.session_id; state = r.state;
   addMsg("agent", r.reply);
-  showHero();
+  showHero(); showScenarios();
   $("#messages").scrollTop = 0;
   render(); lockInput(); $("#input").focus({ preventScroll: true });
 }
@@ -160,13 +160,19 @@ async function newChat() {
 function showHero() {
   const el = document.createElement("div");
   el.className = "hero"; el.id = "hero";
-  el.innerHTML = `<div class="status"><span class="sdot"></span><span class="label">Live demo · fictional customers</span></div>
-    <h1>Ask about your claim.<br><em>Get a straight answer.</em></h1>
-    <p class="sub">The agent confirms who you are first, remembers what you tell it, and answers only from your claim file. Nothing is guessed.</p>
-    <div class="try">${SCENARIOS.map((c, i) => `<button class="btn big ${c.primary ? "" : "ghost"}" data-i="${i}" title="${esc(c.tip)}">${esc(c.title)}${c.primary ? ' <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ""}</button>`).join("")}</div>
-    <p class="try-note">Each button sends a ready-made caller message. Or write your own below.</p>`;
-  el.querySelectorAll(".try .btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
+  el.innerHTML = `<h1>Claims support</h1>
+    <p class="sub">Verify your identity to get started. You can then ask about the status of a claim, the documents it needs, deadlines and next steps.</p>`;
   thread().prepend(el);
+}
+
+// Test affordance, clearly labelled as such: each button sends a ready-made caller message.
+function showScenarios() {
+  const el = document.createElement("div");
+  el.className = "scenarios"; el.id = "scenarios";
+  el.innerHTML = `<span class="label">Test scenarios</span>
+    <div class="try">${SCENARIOS.map((c, i) => `<button class="btn ${c.primary ? "" : "ghost"}" data-i="${i}" title="${esc(c.tip)}">${esc(c.title)}</button>`).join("")}</div>`;
+  el.querySelectorAll(".try .btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
+  thread().appendChild(el);
 }
 
 // A compact claim summary, built by the backend from the claims system (not written by the model).
