@@ -23,6 +23,7 @@ from app.data.repository import get_repo
 from app.sop.controller import Controller
 from app.sop.phases import SPECS, WORKFLOW
 from app.sop.state import SessionState
+from app.sop.suggestions import suggest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -89,6 +90,7 @@ def _snapshot(s: SessionState) -> dict:
     The summary only exists once the caller is cleared (verified, and approved if a representative)."""
     snap = s.public()
     v = s.verification
+    snap["suggestions"] = suggest(s, get_repo(), settings.demo_today)
     snap["claim"] = None
     if v.verified and v.consent_status in ("not_required", "approved") and s.active_case_id:
         repo = get_repo()
@@ -244,6 +246,10 @@ def chat(body: ChatIn, request: Request, x_client_id: str | None = Header(defaul
     if not llm_registry.status(entry)["configured"]:
         raise HTTPException(409, "No model connected. Click 'Add your API key' to connect one, or choose rules-only.")
     s = _get(body.session_id)
+    message = body.message.strip()
+    for sug in suggest(s, get_repo(), settings.demo_today):   # remember which suggestion was picked, so it isn't offered again
+        if message == sug["text"]:
+            s.used_suggestions.add(sug["id"])
     token = llm_registry.use_client_model(entry)   # this visitor's model, for this request only
     try:
         with s.lock:

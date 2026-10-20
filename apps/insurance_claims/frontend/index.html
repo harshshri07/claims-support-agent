@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=Geist+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/styles.css?v=18" />
+  <link rel="stylesheet" href="/static/styles.css?v=22" />
 </head>
-<body>
+<body class="landing">
   <header class="top">
     <a class="brand" href="/" aria-label="Claims Support Agent">
       <span class="mark" aria-hidden="true">
@@ -54,27 +54,27 @@
     </section>
 
     <aside class="side" id="side">
-      <section class="panel">
-        <h2 class="label">Progress</h2>
-        <p class="cap">The fixed four-step workflow.</p>
-        <ol class="steps" id="steps"></ol>
-      </section>
-      <section class="panel">
-        <h2 class="label">Identity check <span class="hint" id="idHint"></span></h2>
-        <p class="cap">Any three details unlock the claim.</p>
-        <div class="idbar" id="idBar"></div>
-        <ul class="ids" id="ids"></ul>
-      </section>
-      <section class="panel" id="memSec">
-        <h2 class="label">Remembered</h2>
-        <p class="cap">What the agent picked up, even early on.</p>
-        <ul class="mem" id="mem"></ul>
-      </section>
-      <details class="panel dev">
-        <summary class="label">How each reply was handled</summary>
-        <p class="muted small">The step, the identity and privacy checks, and where the facts came from. Written by the workflow, not the model.</p>
-        <div id="trace"></div>
-      </details>
+      <div class="rail">
+        <section>
+          <h2 class="label">Progress</h2>
+          <ol class="steps" id="steps"></ol>
+        </section>
+        <section>
+          <h2 class="label">Identity <span class="hint" id="idHint"></span></h2>
+          <div class="idbar" id="idBar"></div>
+          <ul class="idchips" id="ids"></ul>
+          <p class="cap">Any three details unlock the claim.</p>
+        </section>
+        <section id="memSec">
+          <h2 class="label">Remembered</h2>
+          <ul class="mem" id="mem"></ul>
+        </section>
+        <details class="dev">
+          <summary class="label">How each reply was handled</summary>
+          <p class="muted small">The step, the identity and privacy checks, and where the facts came from. Written by the workflow, not the model.</p>
+          <div id="trace"></div>
+        </details>
+      </div>
     </aside>
   </main>
 
@@ -102,7 +102,7 @@
     <iframe id="mailFrame" sandbox title="Email preview"></iframe>
   </dialog>
 
-  <script src="/static/config.js?v=18"></script>
-  <script src="/static/app.js?v=18"></script>
+  <script src="/static/config.js?v=22"></script>
+  <script src="/static/app.js?v=22"></script>
 </body>
 </html>

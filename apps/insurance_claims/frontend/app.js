@@ -21,35 +21,12 @@ const STARTERS = [
   ["Off-topic question", "What is RL?"],
   ["Calling for a parent", "Hi, I'm David Chen, calling for my mom Margaret Chen. Her date of birth is March 15, 1985 and her SSN ends in 4472."],
 ];
-const ICONS = {
-  play: '<circle cx="12" cy="12" r="9"/><path d="m10.2 8.6 5 3.4-5 3.4z"/>',
-  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M12 8.5v3.6M12 15.4h.01"/>',
-  help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.8-1.1 1.6M12 16.6h.01"/>',
-  people: '<circle cx="9" cy="8.2" r="3.1"/><path d="M3.6 19c.4-3 2.5-4.7 5.4-4.7s5 1.7 5.4 4.7"/><circle cx="17.2" cy="9.6" r="2.3"/><path d="M16.3 14.4c2.3-.2 3.9 1.1 4.4 3.5"/>',
-};
 const SCENARIOS = [
-  { icon: "play", title: "Demo case", desc: "Verify, find the claim and get answers in one message.", text: STARTERS[0][1] },
-  { icon: "chat", title: "Frustrated caller", desc: "Pushes to skip verification.", text: STARTERS[1][1] },
-  { icon: "help", title: "Off-topic question", desc: "Asks “What is RL?”.", text: STARTERS[2][1] },
-  { icon: "people", title: "Calling for a parent", desc: "Needs the policyholder's approval.", text: STARTERS[3][1] },
+  { title: "Run the demo case", primary: true, tip: "Margaret verifies and asks about her denied claim, all in one message.", text: STARTERS[0][1] },
+  { title: "Frustrated caller", tip: "Pushes to skip verification. Tests empathy and the security gates.", text: STARTERS[1][1] },
+  { title: "Off-topic question", tip: "Asks 'What is RL?'. Tests scope limits and the human handoff.", text: STARTERS[2][1] },
+  { title: "Calling for a parent", tip: "A son calls for his mother. Needs her approval before anything is shared.", text: STARTERS[3][1] },
 ];
-const CHIPS = {
-  RESOLVE_INTENT: [["The denied one", "The one that was denied."], ["My auto claim", "What's the status of my auto claim?"]],
-  PROCESS_CASE_DOCS: [
-    ["What if I can't get a document?", "What if I can't get one of the documents?"],
-    ["How do I submit?", "How do I submit the documents?"],
-    ["How long will it take?", "How long does the review take once I send them?"],
-    ["That's all, thanks", "Okay, that's everything, thanks."],
-  ],
-  PROCESS_CASE: [
-    ["What do the amounts mean?", "What do the amounts on this claim mean?"],
-    ["What happens next?", "What happens next with this claim?"],
-    ["A different claim", "I have a question about a different claim."],
-    ["That's all, thanks", "Okay, that's everything, thanks."],
-  ],
-  POST_PROCESS: [["Yes, send it", "Yes please, send it."], ["Skip it", "No thanks, skip the email."]],
-  POST_PROCESS_DONE: [["No, that's all", "No, that's all. Thanks!"], ["Another question", "Actually, I have another question about my claim."]],
-};
 
 let sid = null, state = null, traces = [], busy = false, userTurns = 0, consent = "default";
 
@@ -144,7 +121,7 @@ async function send(text) {
   if (!text || busy || !sid) return;
   busy = true; lockInput();
   $("#input").value = ""; autosize();
-  $("#scenarios")?.remove(); $("#hero")?.remove();
+  document.body.classList.remove("landing"); $("#hero")?.remove();
   addMsg("user", text); userTurns++; renderChips(true);
   typing(true);
   try {
@@ -159,7 +136,7 @@ async function send(text) {
   } catch (e) {
     typing(false);
     if (e.status === 409) {
-      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) { showHero(); showScenarios(); } renderChips();
+      thread().lastElementChild?.remove(); userTurns--; if (userTurns === 0) { document.body.classList.add("landing"); showHero(); } renderChips();
       $("#input").value = text; openModel("Connect a model first, or choose “No model (rules-only check)”.");
     } else addNote(`Something went wrong: ${esc(e.message)}`, "warn");
   } finally {
@@ -171,10 +148,11 @@ async function send(text) {
 async function newChat() {
   $("#messages").innerHTML = `<div class="thread" id="thread"></div>`;
   traces = []; userTurns = 0;
+  document.body.classList.add("landing");
   const r = await api("/api/session", { consent_scenario: consent });
   sid = r.session_id; state = r.state;
   addMsg("agent", r.reply);
-  showHero(); showScenarios();
+  showHero();
   $("#messages").scrollTop = 0;
   render(); lockInput(); $("#input").focus({ preventScroll: true });
 }
@@ -184,18 +162,11 @@ function showHero() {
   el.className = "hero"; el.id = "hero";
   el.innerHTML = `<div class="status"><span class="sdot"></span><span class="label">SOP-guided agent · live demo</span></div>
     <h1>Claims support that <em>follows the rules.</em></h1>
-    <p>It verifies who you are, remembers what you say, and only answers from the claim file. Pick a scenario below, or reply as the caller.</p>`;
+    <p class="sub">It verifies who you are, remembers what you say, and answers only from the claim file.</p>
+    <div class="try">${SCENARIOS.map((c, i) => `<button class="btn big ${c.primary ? "" : "ghost"}" data-i="${i}" title="${esc(c.tip)}">${esc(c.title)}${c.primary ? ' <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : ""}</button>`).join("")}</div>
+    <p class="try-note">Each button sends a ready-made caller message. Or write your own below.</p>`;
+  el.querySelectorAll(".try .btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
   thread().prepend(el);
-}
-
-function showScenarios() {
-  const box = document.createElement("div");
-  box.className = "scenarios"; box.id = "scenarios";
-  box.innerHTML = `<h3>Try a scenario</h3><div class="cards">${SCENARIOS.map((c, i) => `
-    <button class="card-btn" data-i="${i}"><span class="ic"><svg viewBox="0 0 24 24">${ICONS[c.icon]}</svg></span>
-    <span><b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></span><span class="go" aria-hidden="true">↗</span></button>`).join("")}</div>`;
-  box.querySelectorAll(".card-btn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
-  thread().appendChild(box);
 }
 
 // A compact claim summary, built by the backend from the claims system (not written by the model).
@@ -222,7 +193,7 @@ const ended = () => state && ["HANDOFF", "CLOSED"].includes(state.phase);
 function lockInput() {
   const off = busy || ended();
   $("#input").disabled = off; $("#sendBtn").disabled = off;
-  $("#input").placeholder = ended() ? "This conversation has ended. Start a new chat to try again." : "Write a message…";
+  $("#input").placeholder = ended() ? "This conversation has ended. Start a new chat to try again." : "Reply as the caller…";
 }
 
 // ---------- side panel ----------
@@ -256,17 +227,18 @@ function renderIds() {
   $("#idHint").textContent = v.verified ? "Verified" : `${given} of 3`;
   $("#idBar").className = `idbar ${v.verified ? "done" : ""}`;
   $("#idBar").innerHTML = [0, 1, 2].map((i) => `<i class="${v.verified || i < given ? "on" : ""}"></i>`).join("");
-  let rows = IDS.map(([k, label]) => {
+  const SHORT = { name: "Name", dob: "Date of birth", phone: "Phone", email: "Email", id_last4: "SSN / ID" };
+  let rows = IDS.map(([k]) => {
     const s = mem[`identity.${k}`];
-    let badge = `<span class="badge">Not given</span>`;
-    if (v.matched_factors.includes(k)) badge = `<span class="badge ok">Matched</span>`;
-    else if (s?.status === "rejected") badge = `<span class="badge bad">Didn't match</span>`;
-    else if (s) badge = `<span class="badge given">Given</span>`;
-    return `<li><span>${label}</span>${badge}</li>`;
+    let cls = "";
+    if (v.matched_factors.includes(k)) cls = "ok";
+    else if (s?.status === "rejected") cls = "bad";
+    else if (s) cls = "given";
+    return `<li class="idchip ${cls}">${SHORT[k]}</li>`;
   }).join("");
   if (v.caller_role === "representative") {
-    const c = { pending: ["wait", "Waiting"], approved: ["ok", "Approved"], timeout: ["bad", "Expired"], not_authorized: ["bad", "Not on file"], rep_name_needed: ["", "Need caller's name"] }[v.consent_status] || ["", "—"];
-    rows += `<li><span>Policyholder approval</span><span class="badge ${c[0]}">${c[1]}</span></li>`;
+    const c = { pending: ["wait", "Approval pending"], approved: ["ok", "Approved"], timeout: ["bad", "Approval expired"], not_authorized: ["bad", "Not on file"], rep_name_needed: ["wait", "Need caller's name"] }[v.consent_status];
+    if (c) rows += `<li class="idchip ${c[0]}">${c[1]}</li>`;
   }
   $("#ids").innerHTML = rows;
 }
@@ -310,15 +282,15 @@ function renderTrace() {
 }
 
 function renderChips(clear) {
-  const key = state.phase === "PROCESS_CASE" && state.active_case_needs_documents ? "PROCESS_CASE_DOCS"
-    : state.phase === "POST_PROCESS" && state.pending_offer !== "email" ? "POST_PROCESS_DONE" : state.phase;
-  let list = clear || userTurns === 0 ? [] : CHIPS[key] || [];
-  if (!clear && ended()) {
-    $("#chips").innerHTML = `<button class="chip" id="restart">Start a new chat</button>`;
+  const box = $("#chips");
+  if (clear || document.body.classList.contains("landing")) { box.innerHTML = ""; return; }
+  if (ended()) {
+    box.innerHTML = `<button class="chip" id="restart">Start a new chat</button>`;
     $("#restart").onclick = newChat; return;
   }
-  $("#chips").innerHTML = list.map(([label], i) => `<button class="chip" data-i="${i}">${esc(label)}</button>`).join("");
-  $("#chips").querySelectorAll(".chip").forEach((b) => b.onclick = () => send(list[+b.dataset.i][1]));
+  const list = state?.suggestions || [];
+  box.innerHTML = list.length ? `<span class="label">You could say</span>` + list.map((c, i) => `<button class="chip" data-i="${i}">${esc(c.label)}</button>`).join("") : "";
+  box.querySelectorAll(".chip").forEach((b) => b.onclick = () => send(list[+b.dataset.i].text));
 }
 
 // ---------- dialogs ----------

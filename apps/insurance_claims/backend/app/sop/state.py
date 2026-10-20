@@ -126,6 +126,7 @@ class SessionState:
     case_ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
     pending_offer: str | None = None     # handoff | email | case_choice | anything_else
     pending_offer_turn: int = 0
+    used_suggestions: set[str] = field(default_factory=set)   # follow-up suggestions the caller already picked
     post_stage: str | None = None        # offered | sent | skipped
     email_status: str | None = None
     handoff: dict[str, Any] | None = None

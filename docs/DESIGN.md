@@ -157,6 +157,15 @@ hairlines, pill buttons, Instrument Sans for the interface, DM Serif Display ita
 small uppercase labels. The product name is deliberately generic ("Claims Support Agent"); the starter data names no
 insurer, so none is invented.
 
+The page has two states. It opens on a **landing screen** (headline, scenario buttons, the opening message, one
+input box) and switches to the **chat** with a single side rail (progress, identity tags, what was remembered) after
+the first message.
+
+Follow-up suggestions (`app/sop/suggestions.py`) are deterministic and grounded, like the claim card. They are
+derived from the workflow state: the phase, the pending question, the verified caller's real claim (document names,
+status, amounts, deadline) and, when the agent asked "which claim?", the actual candidates, named consistently.
+Before verification they are generic. Picked suggestions are remembered in the session so they aren't repeated.
+
 ## 10. Verifiability
 
 `explain.py` turns each turn's trace into a short, deterministic explanation. It's shown in the side panel's

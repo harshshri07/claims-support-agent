@@ -211,3 +211,61 @@ def test_tidy_does_not_split_on_abbreviations_or_amounts():
     out = tidy(raw)
     assert "Dr. Smith" in out and "\n\nSmith" not in out
     assert "$1,450.00" in out
+
+
+# ---- follow-up suggestions -----------------------------------------------------------
+def _cleared_state(party="P9", case="CL-2048", phase=Phase.PROCESS_CASE):
+    s = SessionState()
+    s.verification.verified, s.verification.party_id, s.verification.consent_status = True, party, "not_required"
+    s.active_case_id, s.phase = case, phase
+    return s
+
+
+def test_suggestions_before_verification_are_generic():
+    from app.sop.suggestions import suggest
+    out = suggest(SessionState(), repo, TODAY)
+    text = " ".join(x["text"] for x in out)
+    assert out and "CL-" not in text and "pathology" not in text and "$" not in text
+
+
+def test_suggestions_use_the_real_claim():
+    from app.sop.suggestions import suggest
+    s = _cleared_state()
+    texts = [x["text"] for x in suggest(s, repo, TODAY)]
+    assert any("pathology report" in t for t in texts)                 # the actual missing document
+    assert not any("wrap" in x["id"] for x in suggest(s, repo, TODAY))  # nothing answered yet, so no "that's all"
+    s.case_ledger["CL-2048"] = {"opened_turn": 1, "topics": ["why denied"]}
+    assert suggest(s, repo, TODAY)[-1]["id"] == "CL-2048.wrap.up"
+
+
+def test_suggestions_differ_by_claim_status():
+    from app.sop.suggestions import suggest
+    open_claim = [x["text"] for x in suggest(_cleared_state(case="CL-2102"), repo, TODAY)]
+    closed = [x["text"] for x in suggest(_cleared_state(case="CL-2011"), repo, TODAY)]
+    assert "Why hasn't anything been paid yet?" in open_claim and not any("submit" in t for t in open_claim)
+    assert any("$800.00" in t for t in closed)                          # paid $780.00 of an allowed $800.00
+
+
+def test_suggestions_for_ambiguous_claims_name_the_candidates():
+    from app.sop.suggestions import suggest
+    s = _cleared_state(case=None, phase=Phase.RESOLVE_INTENT)
+    s.pending_offer, s.last_candidates = "case_choice", ["CL-2048", "CL-2011"]
+    assert [x["label"] for x in suggest(s, repo, TODAY)] == ["The denied one", "The closed one"]
+
+
+def test_used_suggestions_are_not_offered_again_and_offers_come_first():
+    from app.sop.suggestions import suggest
+    s = _cleared_state()
+    first = suggest(s, repo, TODAY)[0]
+    s.used_suggestions.add(first["id"])
+    assert first["id"] not in [x["id"] for x in suggest(s, repo, TODAY)]
+    s.pending_offer = "handoff"
+    assert [x["id"] for x in suggest(s, repo, TODAY)] == ["handoff.yes", "handoff.no"]
+
+
+def test_suggestions_name_all_four_claims_consistently():
+    from app.sop.suggestions import suggest
+    s = _cleared_state(case=None, phase=Phase.RESOLVE_INTENT)
+    s.pending_offer, s.last_candidates = "case_choice", [c["case_id"] for c in repo.cases_for("P9")]
+    assert [x["label"] for x in suggest(s, repo, TODAY)] == [
+        "The open auto claim", "The denied healthcare claim", "The closed dental claim", "The closed healthcare claim"]

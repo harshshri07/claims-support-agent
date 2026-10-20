@@ -85,8 +85,11 @@ same data comes back as `explain` in the API.
 
 ## Try it
 
-**Test identities** (top right) lists the fixture customers, each with a *Use* button. The suggestion buttons above
-the input change with each step.
+The page opens on a landing screen with four scenario buttons. **Test identities** (top right) lists the fixture
+customers, each with a *Use* button. Once the chat starts, the **"You could say"** suggestions above the input are
+built from the actual conversation: the real document names on the open claim, the real claims when the agent asks
+"which one?", the amounts on a closed claim, and yes/no when it has just offered an email or a transfer. They contain
+no claim data before the caller is verified, and a suggestion you've used isn't offered again.
 
 1. **Run the demo case.** The side panel shows identity verified, the remembered claim hint marked *Used*, and
    claim CL-2048 open.
@@ -104,7 +107,7 @@ the input change with each step.
 
 ```bash
 cd apps/insurance_claims/backend
-python -m pytest tests/unit -q        # 37 deterministic tests, no model needed
+python -m pytest tests/unit -q        # 43 deterministic tests, no model needed
 python tests/run_scenarios.py         # 36 live conversations against the configured model
 python tests/run_scenarios.py rt_     # only the 16 adversarial ones
 ```
