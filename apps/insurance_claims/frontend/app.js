@@ -24,8 +24,8 @@ const STARTERS = [
 const SCENARIOS = [
   { title: "Demo case", desc: "Margaret gives her details and asks about her denied claim.", text: STARTERS[0][1] },
   { title: "Frustrated caller", desc: "“I already told you who I am. This is ridiculous…”", text: STARTERS[1][1] },
-  { title: "Off-topic question", desc: "“What is RL?” It should politely decline.", text: STARTERS[2][1] },
-  { title: "Calling for a parent", desc: "A son calls about his mother's claim. Her approval is needed.", text: STARTERS[3][1] },
+  { title: "Off-topic question", desc: "Asks an unrelated question: “What is RL?”", text: STARTERS[2][1] },
+  { title: "Calling for a parent", desc: "A son calls about his mother's claim.", text: STARTERS[3][1] },
 ];
 
 let sid = null, state = null, traces = [], busy = false, userTurns = 0, consent = "default";
@@ -178,7 +178,7 @@ function showHero() {
 function showScenarios() {
   const el = document.createElement("div");
   el.className = "scenarios"; el.id = "scenarios";
-  el.innerHTML = `<span class="label">Test scenarios · click one to send it</span>
+  el.innerHTML = `<span class="label">Test scenarios</span>
     <div class="cards">${SCENARIOS.map((c, i) => `<button class="scn" data-i="${i}" title="${esc(c.text)}">
       <b>${esc(c.title)}</b><span class="d">${esc(c.desc)}</span></button>`).join("")}</div>`;
   el.querySelectorAll(".scn").forEach((b) => b.onclick = () => send(SCENARIOS[+b.dataset.i].text));
