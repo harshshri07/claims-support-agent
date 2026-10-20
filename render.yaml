@@ -2,7 +2,7 @@
 # render.com → New → Blueprint → pick this repo. You'll be asked for the two secret values.
 services:
   - type: web
-    name: claims-support-agent
+    name: claims-sop-agent
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
